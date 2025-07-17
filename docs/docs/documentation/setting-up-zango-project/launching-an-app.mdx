@@ -1,0 +1,70 @@
+---
+sidebar_label: Launching your first Zango App
+description: Step by step guide for launching an app on a zango project
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Launching your first Zango App
+After you have setup a zango project, its time to launch a new app on Zango. To launch an app:
+
+- Login to Zango platform
+- Click on "launch new app" button
+- Add app name and app description 
+- Click on "launch app" button
+
+![Todo app launch](/img/todoapp_launch.gif)
+
+## App Domain and Timezone configuration
+
+:::warning
+Configuring app domain and timezone is very important, you will not be able to access your app without app domain and timezone.
+:::
+
+#### Domain
+Since zango has the ability to create multiple projects under one single zango project, it uses domains to identify which project
+should the request be redirected to. Hence, we will assign a domain, say `todoapp.zango.com`(you can add any domain) to our app from the app panel.
+![Todo app domain](/img/todoapp_domain_configure.gif)
+
+Now, If we try to find `todoapp.zango.com`, it simply won't work. The reason is that domain does not know which machine to redirect
+the requests to. 
+To make it work we'll have to map the domain `todoapp.zango.com` to `localhost` in the `/etc/hosts` file. Lets see how to do that
+for different operating systems:
+
+<div className="api-tabs-container">
+<Tabs className="api-tabs">
+  <TabItem value="macos" label="MacOS/Linux" default>
+  <li>Open a new terminal window</li>
+  <li>Run the below command to open `/etc/hosts` file on macOS or Linux:</li>
+
+  ```bash
+  sudo nano /etc/hosts
+  ```
+
+  <li>A file will open in the terminal, paste the below line in that file:</li>
+
+  ```bash
+  0.0.0.0           todoapp.zango.com
+  ```  
+
+  <li>Save and exit the editor</li>
+  </TabItem>
+  <TabItem value="windows" label="Windows">
+  <li>Open notepad as administrator</li>
+  <li>Navigate to the hosts file path which will be `C:\Windows\System32\drivers\etc\hosts`</li>
+  <li>Paste the below line in that file:</li>
+
+  ```bash
+  127.0.0.1           todoapp.zango.com
+  ```
+
+  <li>Save and close the notepad</li>
+  </TabItem>
+</Tabs>
+</div>
+
+#### Timezone
+![App timezone](/img/timezone_configuration.gif)
+
+Congratulations! you have successfully configured the domain and timezone for your Zango app. The app will be accessile on the address
+`http://domain:port`.

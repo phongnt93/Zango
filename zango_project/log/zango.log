@@ -1,0 +1,7 @@
+[public:][17/Jul/2025 07:10:36] INFO [/usr/local/lib/python3.10/site-packages/django/utils/autoreload.py:run_with_reloader:668] Watching for file changes with StatReloader 
+[public:][17/Jul/2025 08:19:57] WARNING [/usr/local/lib/python3.10/site-packages/django/utils/log.py:log_response:241] Not Found: / 
+[public:][17/Jul/2025 08:19:57] WARNING [/usr/local/lib/python3.10/site-packages/django/core/servers/basehttp.py:log_message:212] "GET / HTTP/1.1" 404 1877 
+[public:][17/Jul/2025 08:19:57] WARNING [/usr/local/lib/python3.10/site-packages/django/utils/log.py:log_response:241] Not Found: /favicon.ico 
+[public:][17/Jul/2025 08:19:57] WARNING [/usr/local/lib/python3.10/site-packages/django/core/servers/basehttp.py:log_message:212] "GET /favicon.ico HTTP/1.1" 404 1780 
+[public:][17/Jul/2025 08:20:00] WARNING [/usr/local/lib/python3.10/site-packages/django/utils/log.py:log_response:241] Not Found: / 
+[public:][17/Jul/2025 08:20:00] WARNING [/usr/local/lib/python3.10/site-packages/django/core/servers/basehttp.py:log_message:212] "GET / HTTP/1.1" 404 1877 

@@ -1,0 +1,52 @@
+---
+sidebar_label: Creating a Policy
+---
+# Creating a Policy
+
+Creating policies is a pivotal step in configuring access control within the Zango platform. Here's a step-by-step guide on how to create a new policy:
+
+1. **Creating policies.json under module:**
+   Within the module folder of your app, create a file named ``policies.json``. This file will contain the policy definitions.
+   
+   ```plaintext
+      workspaces
+      ├── YourApp
+      │   ├── YourModule
+      │       ├── templates
+      │              ├── test.html
+      │       ├── views.py
+      │       ├── models.py
+      │       ├── urls.py
+      │       └── policies.json  --> Define policies here
+      ```
+
+2. **policies.json format:**
+   ```
+   {
+      "policies": [
+            {
+                  "name": "PolicyName",
+                  "description": "Description of the policy",
+                  "statement": {
+                     "permissions": [
+                        {
+                              "name": "customers.views.CustomerCrudView",
+                              "type": "view"
+                        }
+                     ]
+                  }
+            },
+            ...
+      ]
+   }
+   ```
+
+   List of policies can be defined under ``policies`` key.
+
+   **name**: Name of the policy
+
+   **description**: Description of the policy
+
+   **statement**: Statement of the policy. Please refer to the refer to the [Policy Config JSON](../policies/policy-config-json) section for more details on defining permissions.
+
+Upon completing these steps, you can define the policies for the modules for your application in Zango. Now the next step is to Sync the policies.
