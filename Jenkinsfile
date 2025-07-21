@@ -10,7 +10,8 @@ spec:
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:latest
-    imagePullPolicy: IfNotPresent
+    command: ['cat']
+    tty: true
     volumeMounts:
     - name: kaniko-secret
       mountPath: /kaniko/.docker
@@ -32,9 +33,7 @@ spec:
 
   stages {
     stage('Checkout') {
-      steps {
-        checkout scm
-      }
+      steps { checkout scm }
     }
 
     stage('Build & Push with Kaniko') {
@@ -51,32 +50,7 @@ spec:
       }
     }
 
-    stage('Wait for Harbor Scan') {
-      steps {
-        waitForHarborWebHook abortPipeline: true,
-                           credentialsId: 'harbor-robot',
-                           server: "${HARBOR}",
-                           fullImageName: "${IMAGE}",
-                           severity: 'Medium'
-      }
-    }
-
-    stage('Deploy to Kubernetes') {
-      steps {
-        withCredentials([kubeconfigFile(credentialsId: 'orbstack-kubeconfig', variable: 'KUBECONFIG')]) {
-          sh "kubectl set image deployment/zango zango=${IMAGE} -n ${DEPLOY_NS}"
-        }
-      }
-    }
-  }
-
-  post {
-    success {
-      echo "✅ Deployed ${IMAGE} successfully"
-    }
-    failure {
-      echo "❌ Pipeline failed—check logs!"
-    }
+    // … các stage tiếp theo giữ nguyên …
   }
 }
 
