@@ -2,27 +2,22 @@ pipeline {
   agent {
     kubernetes {
       label 'kaniko-agent'
-      defaultContainer 'kaniko'
+      defaultContainer 'jnlp'
       yaml """
 apiVersion: v1
 kind: Pod
 spec:
-  serviceAccountName: default
   containers:
-    - name: kaniko
-      image: gcr.io/kaniko-project/executor:latest
-      args:
-        - --cache=true
-        - --context=\$(WORKSPACE)
-        - --dockerfile=\$(WORKSPACE)/Dockerfile
-        - --destination=\$(HARBOR)/\$(PROJECT)/zango-app:\$(IMAGE_TAG)
-      volumeMounts:
-        - name: kaniko-secret
-          mountPath: /kaniko/.docker
-  volumes:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:latest
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
     - name: kaniko-secret
-      secret:
-        secretName: kaniko-secret
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: kaniko-secret
+    secret:
+      secretName: kaniko-secret
 """
     }
   }
@@ -32,6 +27,7 @@ spec:
     PROJECT    = 'zango'
     DEPLOY_NS  = 'zango'
     IMAGE_TAG  = "${env.BRANCH_NAME}-${env.BUILD_ID}"
+    IMAGE      = "${HARBOR}/${PROJECT}/zango-app:${IMAGE_TAG}"
   }
 
   stages {
@@ -44,7 +40,13 @@ spec:
     stage('Build & Push with Kaniko') {
       steps {
         container('kaniko') {
-          sh '/kaniko/executor'
+          sh """
+            /kaniko/executor \
+              --context=\$WORKSPACE \
+              --dockerfile=\$WORKSPACE/Dockerfile \
+              --destination=${IMAGE} \
+              --cache=true
+          """
         }
       }
     }
@@ -54,7 +56,7 @@ spec:
         waitForHarborWebHook abortPipeline: true,
                            credentialsId: 'harbor-robot',
                            server: "${HARBOR}",
-                           fullImageName: "${HARBOR}/${PROJECT}/zango-app:${IMAGE_TAG}",
+                           fullImageName: "${IMAGE}",
                            severity: 'Medium'
       }
     }
@@ -62,11 +64,7 @@ spec:
     stage('Deploy to Kubernetes') {
       steps {
         withCredentials([kubeconfigFile(credentialsId: 'orbstack-kubeconfig', variable: 'KUBECONFIG')]) {
-          sh """
-            kubectl set image deployment/zango \
-              zango=${HARBOR}/${PROJECT}/zango-app:${IMAGE_TAG} \
-              -n ${DEPLOY_NS}
-          """
+          sh "kubectl set image deployment/zango zango=${IMAGE} -n ${DEPLOY_NS}"
         }
       }
     }
@@ -74,10 +72,10 @@ spec:
 
   post {
     success {
-      echo "✅ Deployed ${HARBOR}/${PROJECT}/zango-app:${IMAGE_TAG} successfully"
+      echo "✅ Deployed ${IMAGE} successfully"
     }
     failure {
-      echo "❌ Pipeline failed, check above logs"
+      echo "❌ Pipeline failed—check logs!"
     }
   }
 }
