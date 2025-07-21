@@ -1,12 +1,37 @@
 pipeline {
-  agent any
+  agent {
+    kubernetes {
+      label 'kaniko-agent'
+      defaultContainer 'kaniko'
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: default
+  containers:
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:latest
+      args:
+        - --cache=true
+        - --context=\$(WORKSPACE)
+        - --dockerfile=\$(WORKSPACE)/Dockerfile
+        - --destination=\$(HARBOR)/\$(PROJECT)/zango-app:\$(IMAGE_TAG)
+      volumeMounts:
+        - name: kaniko-secret
+          mountPath: /kaniko/.docker
+  volumes:
+    - name: kaniko-secret
+      secret:
+        secretName: kaniko-secret
+"""
+    }
+  }
 
   environment {
-    HARBOR    = 'harbor.local'
-    PROJECT   = 'zango'
-    DEPLOY_NS = 'zango'
-    IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_ID}"
-    IMAGE     = "${HARBOR}/${PROJECT}/zango-app:${IMAGE_TAG}"
+    HARBOR     = 'harbor.local'
+    PROJECT    = 'zango'
+    DEPLOY_NS  = 'zango'
+    IMAGE_TAG  = "${env.BRANCH_NAME}-${env.BUILD_ID}"
   }
 
   stages {
@@ -16,33 +41,10 @@ pipeline {
       }
     }
 
-    stage('Build Docker Image') {
+    stage('Build & Push with Kaniko') {
       steps {
-        // Dùng double‑quoted string và env.IMAGE
-        sh "docker build -t ${env.IMAGE} ."
-      }
-    }
-
-    stage('Run Tests') {
-      steps {
-        sh "docker run --rm ${env.IMAGE} python manage.py test"
-      }
-    }
-
-    stage('Push to Harbor') {
-      steps {
-        withCredentials([
-          usernamePassword(
-            credentialsId: 'harbor-robot',
-            usernameVariable: 'H_USER',
-            passwordVariable: 'H_PASS'
-          )
-        ]) {
-          // Login và push
-          sh """
-            echo \$H_PASS | docker login ${env.HARBOR} -u \$H_USER --password-stdin
-            docker push ${env.IMAGE}
-          """
+        container('kaniko') {
+          sh '/kaniko/executor'
         }
       }
     }
@@ -50,31 +52,32 @@ pipeline {
     stage('Wait for Harbor Scan') {
       steps {
         waitForHarborWebHook abortPipeline: true,
-                            credentialsId: 'harbor-robot',
-                            server: "${env.HARBOR}",
-                            fullImageName: "${env.IMAGE}",
-                            severity: 'Medium'
+                           credentialsId: 'harbor-robot',
+                           server: "${HARBOR}",
+                           fullImageName: "${HARBOR}/${PROJECT}/zango-app:${IMAGE_TAG}",
+                           severity: 'Medium'
       }
     }
 
     stage('Deploy to Kubernetes') {
       steps {
         withCredentials([kubeconfigFile(credentialsId: 'orbstack-kubeconfig', variable: 'KUBECONFIG')]) {
-          sh "kubectl set image deployment/zango zango=${env.IMAGE} -n ${env.DEPLOY_NS}"
+          sh """
+            kubectl set image deployment/zango \
+              zango=${HARBOR}/${PROJECT}/zango-app:${IMAGE_TAG} \
+              -n ${DEPLOY_NS}
+          """
         }
       }
     }
   }
 
   post {
-    always {
-      echo ">>> Build finished: ${currentBuild.currentResult}"
-    }
     success {
-      echo "✅ SUCCESS: ${env.IMAGE} pushed & deployed."
+      echo "✅ Deployed ${HARBOR}/${PROJECT}/zango-app:${IMAGE_TAG} successfully"
     }
     failure {
-      echo "❌ FAILURE: Check above logs."
+      echo "❌ Pipeline failed, check above logs"
     }
   }
 }
